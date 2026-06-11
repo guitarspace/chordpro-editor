@@ -395,9 +395,12 @@
 
   // 從面板拖出 → 放到譜上；沒拖動（點一下）→ 插入到編輯中的游標處
   function bindPaletteDrag(el, name) {
+    el.addEventListener('contextmenu', (e) => e.preventDefault()); // iPad 長按選單
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault(); // 保住編輯中的焦點
       const startX = e.clientX, startY = e.clientY;
+      // 觸控：浮起的和弦與命中點都上移，不被手指擋住
+      const lift = e.pointerType === 'touch' ? 48 : 0;
       let moved = false, target = null, fly = null;
       const clearDrop = () => $$('.char.drop').forEach(s => s.classList.remove('drop'));
 
@@ -406,14 +409,15 @@
         if (!moved) {
           moved = true;
           fly = document.createElement('span');
-          fly.className = 'chip dragging fly' + (name === '|' ? ' barline' : '');
+          fly.className = 'chip dragging fly' + (name === '|' ? ' barline' : '') + (lift ? ' touch-drag' : '');
           fly.textContent = name === '|' ? '|' : displayChordName(name);
           fly.style.position = 'fixed';
           document.body.appendChild(fly);
         }
         fly.style.left = (ev.clientX + 8) + 'px';
-        fly.style.top = (ev.clientY - 30) + 'px';
-        const drop = findDropTarget(ev.clientX, ev.clientY, fly);
+        fly.style.top = (ev.clientY - 30 - lift) + 'px';
+        dragAutoScroll(ev.clientY);
+        const drop = findDropTarget(ev.clientX, ev.clientY - lift, fly);
         clearDrop();
         target = drop || null;
         if (drop) {
@@ -925,6 +929,13 @@
     return div;
   }
 
+  // 拖曳接近畫面上下緣時自動捲動（iPad 長譜面拖曳用）
+  function dragAutoScroll(clientY) {
+    const m = 70;
+    if (clientY < m) window.scrollBy(0, -14);
+    else if (clientY > window.innerHeight - m) window.scrollBy(0, 14);
+  }
+
   // 找指標位置對應的目標格（拖曳用）
   function findDropTarget(x, y, chip) {
     const els = document.elementsFromPoint(x, y).filter(el => el !== chip && !chip.contains(el));
@@ -951,10 +962,13 @@
 
   // ---- 和弦拖曳 ----
   function bindChipDrag(chip, lineIdx, chordIdx) {
+    chip.addEventListener('contextmenu', (e) => e.preventDefault()); // iPad 長按選單
     chip.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const startX = e.clientX, startY = e.clientY;
       const rect = chip.getBoundingClientRect();
+      // 觸控：和弦上浮到手指上方才看得到；命中點也跟著浮起的位置
+      const lift = e.pointerType === 'touch' ? 48 : 0;
       let moved = false;
       let target = null;
 
@@ -965,11 +979,13 @@
         if (!moved) {
           moved = true;
           chip.classList.add('dragging');
+          if (lift) chip.classList.add('touch-drag');
           chip.style.position = 'fixed';
         }
         chip.style.left = (rect.left + ev.clientX - startX) + 'px';
-        chip.style.top = (rect.top + ev.clientY - startY) + 'px';
-        const drop = findDropTarget(ev.clientX, ev.clientY, chip);
+        chip.style.top = (rect.top + ev.clientY - startY - lift) + 'px';
+        dragAutoScroll(ev.clientY);
+        const drop = findDropTarget(ev.clientX, ev.clientY - lift, chip);
         clearDrop();
         if (drop) {
           target = drop;

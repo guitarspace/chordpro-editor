@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChordPro 所見即所得編輯器</title>
+<link rel="stylesheet" href="style.css?v=11">
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="brand">🎸 ChordPro 編輯器</span>
+  <button id="btn-new">開新檔案</button>
+  <button id="btn-import">匯入</button>
+  <button id="btn-paste">貼歌詞</button>
+  <button id="btn-export">匯出 .cho</button>
+  <span class="sep"></span>
+  <button id="btn-transpose-down">移調 −1</button>
+  <button id="btn-transpose-up">移調 +1</button>
+  <button id="btn-degrees" title="以 Play 調為 1 級顯示級數和弦（Play G 時 G=1、A=2…）">級數</button>
+  <span class="sep"></span>
+  <button id="btn-source">原始碼</button>
+  <button id="btn-print">列印</button>
+  <span class="sep"></span>
+  <span class="sliders">
+    <label title="歌詞與和弦字體大小">字級<input type="range" id="sl-font" min="14" max="30" step="1"></label>
+    <label title="最上方和弦指法圖大小">和弦圖<input type="range" id="sl-strip" min="60" max="180" step="5"></label>
+    <label title="顯示在歌詞行內的指法圖大小">行內圖<input type="range" id="sl-inline" min="40" max="110" step="5"></label>
+  </span>
+  <span class="hint">拖曳和弦可改位置｜點歌詞可編輯｜點空白處加和弦或小節線｜點和弦圖可自訂按法</span>
+</div>
+
+<div id="sheet">
+  <div id="meta">
+    <div class="title-row">
+      <input id="m-title" placeholder="曲名">
+      <input id="m-artist" placeholder="演唱者 / 作曲者">
+    </div>
+    <div class="info-row">
+      <span><label>Key：</label><select id="m-key"></select></span>
+      <span><label>Play：</label><select id="m-play"></select></span>
+      <span><label>Capo：</label><select id="m-capo"></select></span>
+      <span><label>Tempo：</label><input id="m-tempo" placeholder="—"></span>
+      <span><label>節奏：</label><input id="m-rhythm" class="wide" placeholder="T1213121"></span>
+    </div>
+  </div>
+
+  <div id="chordstrip">
+    <div class="strip-label">和弦指法（點擊圖示可自訂按法）</div>
+    <div class="grids"></div>
+  </div>
+
+  <div id="editor"></div>
+
+  <div id="addrow">
+    <button id="btn-add-line">＋ 歌詞行</button>
+    <button id="btn-add-section">＋ 段落標題</button>
+  </div>
+</div>
+
+<div id="palette" title="拖曳到譜上放置；編輯歌詞時點一下＝插入到游標處">
+  <span class="pal-label" title="拖曳這裡可移動整個面板">順階<br><span id="pal-key"></span></span>
+  <div class="pal-chips"></div>
+  <button id="pal-expand" title="展開各級數的更多和弦">⌃</button>
+</div>
+
+<div id="popover">
+  <input id="pop-input" list="chord-list" placeholder="和弦名" autocomplete="off">
+  <datalist id="chord-list"></datalist>
+  <div class="btns">
+    <button id="pop-ok">確定</button>
+    <button id="pop-bar" title="在此處插入小節線">小節線｜</button>
+    <button id="pop-edit-shape">編輯指法</button>
+    <button id="pop-grid" title="切換此和弦上方是否顯示指法圖">圖示</button>
+    <button id="pop-del" class="danger">刪除</button>
+  </div>
+</div>
+
+<dialog id="chord-editor">
+  <h3>自訂按法：<input id="ce-name" title="可直接修改和弦名稱，整首歌會一起改名"></h3>
+  <div class="ce-top">
+    <label>起始把位（base fret）：<input type="number" id="ce-base" min="1" max="15" value="1"></label>
+  </div>
+  <div id="ce-svg-wrap"></div>
+  <div id="ce-fingers">
+    <span>指法代號（低音E → 高音E，T、1～4）：</span>
+    <div class="ce-f-inputs"></div>
+  </div>
+  <div class="ce-hint">點格子＝按壓位置；<b>Shift+點</b>＝同一弦加另一個音（空心圓）；點琴枕上方＝切換 ○ 空弦 / × 悶音</div>
+  <div class="dlg-btns">
+    <button id="ce-reset">還原預設</button>
+    <button id="ce-cancel">取消</button>
+    <button id="ce-save" class="primary">儲存</button>
+  </div>
+</dialog>
+
+<dialog id="paste-dlg">
+  <h3>貼上歌詞文本</h3>
+  <textarea id="paste-text" spellcheck="false" placeholder="把整首歌詞直接貼進來，會依照文本的換行自動分行。&#10;空行會保留成行距。"></textarea>
+  <div class="dlg-btns">
+    <button id="paste-cancel">取消</button>
+    <button id="paste-replace">取代現有歌詞</button>
+    <button id="paste-append" class="primary">加到譜的最後</button>
+  </div>
+</dialog>
+
+<dialog id="source-dlg">
+  <h3>ChordPro 原始碼</h3>
+  <textarea id="source-text" spellcheck="false"></textarea>
+  <div class="dlg-btns">
+    <button id="src-close">關閉</button>
+    <button id="src-apply" class="primary">套用變更</button>
+  </div>
+</dialog>
+
+<input type="file" id="file-input" accept=".cho,.chopro,.chordpro,.crd,.pro,.txt" hidden>
+
+<script src="chordpro.js?v=11"></script>
+<script src="chords.js?v=11"></script>
+<script src="app.js?v=11"></script>
+</body>
+</html>
